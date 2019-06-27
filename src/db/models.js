@@ -90,6 +90,16 @@ const UserMobileOTP = db.define('usermobileotp', {
     paranoid: true
 });
 
+const UserEmailOTP = db.define('useremailotp', {
+    id: {type: Sequelize.DataTypes.BIGINT, autoIncrement: true, primaryKey: true},
+    login_otp: {type: Sequelize.DataTypes.STRING, allowNull: false},
+    email: {type: Sequelize.DataTypes.STRING, unique: false, allowNull: false},
+    used_at: {type: Sequelize.DataTypes.DATE, allowNull: true}
+}, {
+    paranoid: true
+});
+
+
 User.belongsTo(User,  {foreignKey: 'referredBy', targetKey :'id', as:'userReferredBy'})
 
 const UserLocal = db.define('userlocal', definitions.social.local)
@@ -125,6 +135,7 @@ Resetpassword.belongsTo(User)
 Verifyemail.belongsTo(User)
 VerifyMobile.belongsTo(User)
 UserMobileOTP.belongsTo(User)
+UserEmailOTP.belongsTo(User)
 
 const Client = db.define('client', {
     id: {type: Sequelize.DataTypes.BIGINT, primaryKey: true},
@@ -302,7 +313,8 @@ module.exports = {
         Country,
         EventSubscription,
         VerifyMobile,
-        UserMobileOTP
+        UserMobileOTP,
+        UserEmailOTP
     },
     db
 };
