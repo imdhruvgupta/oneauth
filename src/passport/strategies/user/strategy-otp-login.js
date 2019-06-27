@@ -9,7 +9,7 @@ const {findUserByParams} = require('../../../controllers/user');
 
 module.exports = new LocalStrategy({
     passReqToCallback: true,
-}, async function (req, mobile_number, otp, cb) {
+}, async function (req, username, otp, cb) {
     req.ga.event({
         category: 'login',
         action: 'attempt',
@@ -19,34 +19,66 @@ module.exports = new LocalStrategy({
     Raven.setContext({extra: {file: 'otp_login_strategy'}});
     try {
 
-        let user = await findUserByParams({verifiedmobile: mobile_number});
+        // Case: Mobile Number
+        let user = await findUserByParams({verifiedmobile: username});
+        if(user) {
 
-        if (!user) {
-            return cb(null, false, {message: 'Invalid Username or Unverified Mobile Number'})
-        }
-
-        let lastLoginOTP = await models.UserMobileOTP.findOne({
-            where: {
-                mobile_number: mobile_number,
-            },
-            order: [['createdAt', 'DESC']]
-        });
-
-        if (!lastLoginOTP) {
-            return cb(null, false, {message: 'Resend an OTP Again'});
-        }
-
-        if (lastLoginOTP.get('login_otp') === otp && !new Date(lastLoginOTP.dataValues.createdAt).getTime() < (new Date().getTime() - 10 * 60 * 1000)) {
-
-            await lastLoginOTP.update({
-                used_at: new Date()
+            let lastLoginOTP = await models.UserMobileOTP.findOne({
+                where: {
+                    mobile_number: username,
+                },
+                order: [['createdAt', 'DESC']]
             });
 
-            return cb(null, user.get())
+            if (!lastLoginOTP) {
+                return cb(null, false, {message: 'Resend an OTP Again'});
+            }
+
+            if (lastLoginOTP.get('login_otp') === otp && !new Date(lastLoginOTP.dataValues.createdAt).getTime() < (new Date().getTime() - 10 * 60 * 1000)) {
+
+                await lastLoginOTP.update({
+                    used_at: new Date()
+                });
+    
+                return cb(null, user.get())
+    
+            } else {
+                return cb(null, false, {message: 'You have entered an incorrect OTP.'});
+            }
 
         } else {
+            // Case: Email Address
+            user = await findUserByParams({verifiedemail: username});
+            if(user) {
 
-            return cb(null, false, {message: 'You have entered an incorrect OTP.'});
+                let lastLoginOTP = await models.UserEmailOTP.findOne({
+                    where: {
+                        email: username,
+                    },
+                    order: [['createdAt', 'DESC']]
+                });
+
+                if (!lastLoginOTP) {
+                    return cb(null, false, {message: 'Resend an OTP Again'});
+                }
+
+                if (lastLoginOTP.get('login_otp') === otp && !new Date(lastLoginOTP.dataValues.createdAt).getTime() < (new Date().getTime() - 10 * 60 * 1000)) {
+
+                    await lastLoginOTP.update({
+                        used_at: new Date()
+                    });
+        
+                    return cb(null, user.get())
+        
+                } else {
+                    return cb(null, false, {message: 'You have entered an incorrect OTP.'});
+                }
+
+            } else {
+                // Else case
+                return cb(null, false, {message: 'Invalid Username or Unverified Email or Unverified Mobile Number'})
+            }
+
         }
 
     } catch (err) {

@@ -4,6 +4,7 @@ const router = require('express').Router()
 
 const models = require('../../db/models').models;
 const {parseNumberByCountry, validateNumber} = require('../../utils/mobile_validator')
+const mail = require('../../utils/email')
 const {findUserByParams} = require('../../controllers/user')
 const {createAndSendOTP} = require('../../controllers/verify_otp')
 const passport = require('../../passport/passporthandler')
@@ -27,7 +28,7 @@ router.post('/', cel.ensureNotLoggedIn('/'), async (req, res, next) => {
                     req.flash('error', 'Incorrect OTP')
                     return res.render('login_otp', {
                         pageTitle: "Login with OTP",
-                        mobile_number: req.body.username,
+                        username: req.body.username,
                         messages: {
                             error: req.flash('error'),
                             info: req.flash('info')
@@ -43,23 +44,85 @@ router.post('/', cel.ensureNotLoggedIn('/'), async (req, res, next) => {
             })(req, res, next)
 
         } else {
+            //creates a 6 digit random number.
+            const key = Math.floor(100000 + Math.random() * 900000)
 
-            if (!validateNumber(parseNumberByCountry(req.body.username, 'IN'))) {
-                console.log('Invalid Mobile Number')
-                req.flash('error', 'Please enter a valid 10 digit Mobile number.')
-                return res.redirect('/')
-            }
-
+            // Case: Mobile Number 
             let user = await findUserByParams({verifiedmobile: `+91-${req.body.username}`})
+            if(user) {
 
-            const key = Math.floor(100000 + Math.random() * 900000) //creates a 6 digit random number.
+                await models.UserMobileOTP.upsert({
+                    mobile_number: user.dataValues.mobile_number,
+                    login_otp: key,
+                    userId: user.dataValues.id,
+                    include: [models.User]
+                })
 
+                createAndSendOTP(user.mobile_number, key, 'accessing your Coding Blocks Account')
+                .then(function (body) {
+                    debug(body)
+                }).catch(function (error) {
+                    throw new Error(error)
+                })
 
-            if (!user) {
-                req.flash('error', 'OTP login works only if you have verified your mobile number')
-                debug('Mobile no not verified or no user')
-                return res.redirect('/')
+                req.flash('info', 'We have sent you an OTP on your number')
+                res.render('login_otp', {
+                    pageTitle: "Login with OTP",
+                    username: user.dataValues.mobile_number,
+                    messages: {
+                        error: req.flash('error'),
+                        info: req.flash('info')
+                    }
+                })
+
+            } else {
+                // Case: Email Address
+                user = await findUserByParams({verifiedemail: req.body.username})
+                if(user) {
+            
+                    await models.UserEmailOTP.upsert({
+                        email: user.dataValues.email,
+                        login_otp: key,
+                        userId: user.dataValues.id,
+                        include: [models.User]
+                    })
+
+                    await mail.verifyOTPEmail(user, key)
+
+                    req.flash('info', 'We have sent you an OTP on your email address')
+                    res.render('login_otp', {
+                        pageTitle: "Login with OTP",
+                        username: user.dataValues.email,
+                        messages: {
+                            error: req.flash('error'),
+                            info: req.flash('info')
+                        }
+                    })
+
+                } else {
+                    // Invalid Input
+                    req.flash('error', 'Please enter a verified mobile number or a verified email.')
+                    return res.redirect('/')
+                }
             }
+        }
+    } catch (e) {
+        Raven.captureException(e)
+        req.flash('error', 'Error logging in with OTP.')
+        res.redirect('/')
+    }
+
+})
+
+
+router.post('/resend', cel.ensureNotLoggedIn('/'), async (req, res, next) => {
+    try {
+        //creates a 6 digit random number.
+        const key = Math.floor(100000 + Math.random() * 900000)
+
+        // Case: Mobile Number 
+        let user = await findUserByParams({verifiedmobile: `+91-${req.body.username}`})
+        if(user) {
 
             await models.UserMobileOTP.upsert({
                 mobile_number: user.dataValues.mobile_number,
@@ -69,74 +132,51 @@ router.post('/', cel.ensureNotLoggedIn('/'), async (req, res, next) => {
             })
 
             createAndSendOTP(user.mobile_number, key, 'accessing your Coding Blocks Account')
-                .then(function (body) {
-                    debug(body)
-                }).catch(function (error) {
+            .then(function (body) {
+                debug(body)
+            }).catch(function (error) {
                 throw new Error(error)
             })
+
             req.flash('info', 'We have sent you an OTP on your number')
             res.render('login_otp', {
                 pageTitle: "Login with OTP",
-                mobile_number: user.dataValues.mobile_number,
+                username: user.dataValues.mobile_number,
                 messages: {
                     error: req.flash('error'),
                     info: req.flash('info')
                 }
             })
 
-        }
-    } catch (e) {
-        Raven.captureException(e)
-        req.flash('error', 'Error logging in with OTP.')
-        res.redirect('/')
-    }
+        } else {
+            // Case: Email Address
+            user = await findUserByParams({verifiedemail: req.body.username})
+            if(user) {
+                await models.UserEmailOTP.upsert({
+                    email: user.dataValues.email,
+                    login_otp: key,
+                    userId: user.dataValues.id,
+                    include: [models.User]
+                })
 
+                await mail.verifyOTPEmail(user, key)
 
-})
+                req.flash('info', 'We have sent you an OTP on your email address')
+                res.render('login_otp', {
+                    pageTitle: "Login with OTP",
+                    username: user.dataValues.email,
+                    messages: {
+                        error: req.flash('error'),
+                        info: req.flash('info')
+                    }
+                })
 
-
-router.post('/resend', cel.ensureNotLoggedIn('/'), async (req, res, next) => {
-    try {
-        if (!validateNumber(parseNumberByCountry(req.body.username, 'IN'))) {
-            console.log('Invalid Mobile Number')
-            req.flash('error', 'Please enter a valid 10 digit Mobile number.')
-            return res.redirect('/')
-        }
-
-        let user = await findUserByParams({verifiedmobile: req.body.username})
-
-        const key = Math.floor(100000 + Math.random() * 900000) //creates a 6 digit random number.
-
-
-        if (!user) {
-            req.flash('error', 'OTP login works only if you have verified your mobile number')
-            debug('Mobile no not verified or no user')
-            return res.redirect('/')
-        }
-
-        await models.UserMobileOTP.upsert({
-            mobile_number: user.dataValues.mobile_number,
-            login_otp: key,
-            userId: user.dataValues.id,
-            include: [models.User]
-        })
-
-        createAndSendOTP(user.mobile_number, key, 'accessing your Coding Blocks Account')
-            .then(function (body) {
-                debug(body)
-            }).catch(function (error) {
-            throw new Error(error)
-        })
-        req.flash('info', 'We have resent you an OTP on your number')
-        res.render('login_otp', {
-            pageTitle: "Login with OTP",
-            mobile_number: user.dataValues.mobile_number,
-            messages: {
-                error: req.flash('error'),
-                info: req.flash('info')
+            } else {
+                // Invalid Input
+                req.flash('error', 'Please enter a verified mobile number or a verified email.')
+                return res.redirect('/')
             }
-        })
-
+        }
 
     } catch (e) {
         Raven.captureException(e)
