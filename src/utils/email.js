@@ -135,6 +135,22 @@ const forgotUsernameEmail = function (user) {
 
 }
 
+const verifyOTPEmail = function(user, Otp) {
+
+    let msgTemplate = {}
+    msgTemplate.template_id = config.LOGIN_EMAIL_OTP
+    msgTemplate.from = senderEmail
+
+    msgTemplate.to = user.email
+
+    msgTemplate.substitutions = {
+        username: user.username,
+        subject: "Coding Blocks : OTP for Login",
+        OTP: Otp
+    }
+    return sgMail.send(msgTemplate)
+
+}
 
 module.exports = {
     welcomeEmail,
@@ -142,5 +158,6 @@ module.exports = {
     forgotPassEmail,
     forgotUsernameEmail,
     verifyMultipleEmails,
-    setANewPassword
+    setANewPassword,
+    verifyOTPEmail
 }
