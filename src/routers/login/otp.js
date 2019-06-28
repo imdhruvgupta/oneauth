@@ -3,7 +3,6 @@ const cel = require('connect-ensure-login')
 const router = require('express').Router()
 
 const models = require('../../db/models').models;
-const {parseNumberByCountry, validateNumber} = require('../../utils/mobile_validator')
 const mail = require('../../utils/email')
 const {findUserByParams} = require('../../controllers/user')
 const {createAndSendOTP} = require('../../controllers/verify_otp')
@@ -68,7 +67,7 @@ router.post('/', cel.ensureNotLoggedIn('/'), async (req, res, next) => {
                 req.flash('info', 'We have sent you an OTP on your number')
                 res.render('login_otp', {
                     pageTitle: "Login with OTP",
-                    username: user.dataValues.mobile_number,
+                    username: req.body.username,
                     messages: {
                         error: req.flash('error'),
                         info: req.flash('info')
@@ -141,7 +140,7 @@ router.post('/resend', cel.ensureNotLoggedIn('/'), async (req, res, next) => {
             req.flash('info', 'We have sent you an OTP on your number')
             res.render('login_otp', {
                 pageTitle: "Login with OTP",
-                username: user.dataValues.mobile_number,
+                username: req.body.username,
                 messages: {
                     error: req.flash('error'),
                     info: req.flash('info')
