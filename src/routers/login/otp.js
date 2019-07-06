@@ -46,10 +46,18 @@ router.post('/', cel.ensureNotLoggedIn('/'), async (req, res, next) => {
             //creates a 6 digit random number.
             const key = Math.floor(100000 + Math.random() * 900000)
 
-            // Case: Mobile Number 
+            // Case: Mobile Number
             let user = await findUserByParams({verifiedmobile: `+91-${req.body.username}`})
-            if(user) {
 
+            // Case: Username
+            if(!user) user = await findUserByParams({username: req.body.username})
+            // If the user has no verified number then set user to null for other cases 
+            if(user && !user.verifiedmobile){
+                req.flash('error', 'The username does not have verified mobile number')
+                return res.redirect('/')    
+            }
+        
+            if(user) {
                 await models.UserMobileOTP.upsert({
                     mobile_number: user.dataValues.mobile_number,
                     login_otp: key,
@@ -119,8 +127,17 @@ router.post('/resend', cel.ensureNotLoggedIn('/'), async (req, res, next) => {
         //creates a 6 digit random number.
         const key = Math.floor(100000 + Math.random() * 900000)
 
-        // Case: Mobile Number 
+        // Case: Mobile Number
         let user = await findUserByParams({verifiedmobile: `+91-${req.body.username}`})
+
+        // Case: Username
+        if(!user) user = await findUserByParams({username: req.body.username})
+        // If the user has no verified number then set user to null for other cases 
+        if(user && !user.verifiedmobile) {
+            req.flash('error', 'The username does not have verified mobile number')
+            return res.redirect('/')    
+        }
+
         if(user) {
 
             await models.UserMobileOTP.upsert({
