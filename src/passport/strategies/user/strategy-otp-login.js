@@ -21,6 +21,14 @@ module.exports = new LocalStrategy({
 
         // Case: Mobile Number
         let user = await findUserByParams({verifiedmobile: username});
+        // Case: Username
+        if(!user) user = await findUserByParams({username: username})
+
+        if(user && !user.verifiedmobile) {
+            req.flash('error', 'The username does not have verified mobile number')
+            return res.redirect('/')    
+        }
+
         if(user) {
 
             let lastLoginOTP = await models.UserMobileOTP.findOne({
