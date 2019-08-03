@@ -135,7 +135,7 @@ const forgotUsernameEmail = function (user) {
 
 }
 
-const verifyOTPEmail = function(user, Otp) {
+const sendVerifyOTPEmail = function(user, Otp) {
 
     let msgTemplate = {}
     msgTemplate.template_id = config.LOGIN_EMAIL_OTP
@@ -159,5 +159,5 @@ module.exports = {
     forgotUsernameEmail,
     verifyMultipleEmails,
     setANewPassword,
-    verifyOTPEmail
+    sendVerifyOTPEmail
 }

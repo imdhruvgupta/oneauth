@@ -94,7 +94,7 @@ router.post('/', cel.ensureNotLoggedIn('/'), async (req, res, next) => {
                         include: [models.User]
                     })
 
-                    await mail.verifyOTPEmail(user, key)
+                    await mail.sendVerifyOTPEmail(user, key)
 
                     req.flash('info', 'We have sent you an OTP on your email address')
                     res.render('login_otp', {
@@ -175,7 +175,7 @@ router.post('/resend', cel.ensureNotLoggedIn('/'), async (req, res, next) => {
                     include: [models.User]
                 })
 
-                await mail.verifyOTPEmail(user, key)
+                await mail.sendVerifyOTPEmail(user, key)
 
                 req.flash('info', 'We have sent you an OTP on your email address')
                 res.render('login_otp', {
