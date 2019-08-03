@@ -33,7 +33,7 @@ module.exports = new LocalStrategy({
 
             let lastLoginOTP = await models.UserMobileOTP.findOne({
                 where: {
-                    mobile_number: username,
+                    mobile_number: user.verifiedmobile,
                 },
                 order: [['createdAt', 'DESC']]
             });
