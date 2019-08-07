@@ -20,7 +20,7 @@ module.exports = new LocalStrategy({
     try {
 
         // Case: Mobile Number
-        let user = await findUserByParams({verifiedmobile: username});
+        let user = await findUserByParams({verifiedmobile: `+91-${username}`});
         // Case: Username
         if(!user) user = await findUserByParams({username: username})
 
