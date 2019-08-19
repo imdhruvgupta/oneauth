@@ -16,7 +16,7 @@ config = {
   "FORGOT_USER_EMAIL": "a7e8ca83-0b5f-4ec8-b7cb-a3dbd2839c46",
   "FORGOT_PASS_EMAIL":"64d80a73-194d-4988-a581-87fbcf5457c7",
   "VERIFY_EMAIL" :"3e470c46-5d2b-471e-992e-4820f1599de3",
-  "LOGIN_EMAIL_OTP": "------------TO-BE-ADDED------------"
+  "LOGIN_EMAIL_OTP": "419b9163-5c41-4e27-abb6-88e2e7066b79"
 };
 
 config.DEPLOY_CONFIG = process.env.ONEAUTH_DEV || 'production';
